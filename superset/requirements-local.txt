@@ -1,0 +1,14 @@
+# Extra database drivers baked into the Superset image by superset/docker/Dockerfile.
+# Uncomment what you need, then rebuild: `./superset/scripts/run.sh build`.
+#
+psycopg2-binary>=2.9          # PostgreSQL — Superset's metadata DB uses postgresql+psycopg2://
+pymysql>=1.1.0                # MySQL / MariaDB — used by docker-compose.tests.yml
+cryptography>=42.0            # required by pymysql for caching_sha2_password auth (MySQL 8 default)
+# pymssql>=2.3.0              # SQL Server
+# clickhouse-connect>=0.7.0   # ClickHouse
+# duckdb-engine>=0.13.0       # DuckDB
+# trino>=0.330                # Trino / Presto
+# snowflake-sqlalchemy>=1.6.0 # Snowflake
+# sqlalchemy-bigquery>=1.11.0 # BigQuery (also needs google-cloud-bigquery)
+# sqlalchemy-redshift>=0.8.14 # Redshift
+# pyathena[SQLAlchemy]>=3.0.0 # AWS Athena

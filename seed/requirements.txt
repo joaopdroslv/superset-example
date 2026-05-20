@@ -1,0 +1,9 @@
+# Dependencies for the standalone seeder. Install on the host with:
+#   python -m venv .venv && . .venv/Scripts/activate   (Windows: .venv\Scripts\Activate.ps1)
+#   pip install -r src/seed/requirements.txt
+SQLAlchemy>=2.0,<3
+PyMySQL>=1.1
+cryptography>=42.0          # required by PyMySQL for caching_sha2_password (MySQL 8 default)
+Faker>=25.0
+python-dotenv>=1.0
+PyYAML>=6.0                 # loads src/seed/config.yml

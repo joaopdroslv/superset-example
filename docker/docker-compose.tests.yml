@@ -1,0 +1,54 @@
+# Test/sandbox MySQL instance — meant to be merged on top of docker-compose.yml.
+#
+# Manual invocation:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.tests.yml up -d
+#
+# Via the helper script (auto-detected when this file exists):
+#   ./run.sh
+#
+# Connect from Superset's UI (Settings → Database Connections → +):
+#   SQLAlchemy URI: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-test:3306/${MYSQL_DATABASE}
+# Connect from the host (e.g. DBeaver / mysql CLI):
+#   host=127.0.0.1  port=${MYSQL_PORT}  user=${MYSQL_USER}  password=${MYSQL_PASSWORD}
+
+services:
+  mysql-test:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-testdb}
+      MYSQL_USER: ${MYSQL_USER:-superset}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      # caching_sha2_password is MySQL 8.4's default; the flag was removed in 8.4.
+    ports:
+      # 3307 on the host to avoid clashing with a local MySQL on 3306.
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - "CMD"
+        - "mysqladmin"
+        - "ping"
+        - "-h"
+        - "localhost"
+        - "-uroot"
+        - "-p${MYSQL_ROOT_PASSWORD}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Make Superset wait for MySQL before starting, so the first dashboard query
+  # against the test DB doesn't fail with "connection refused".
+  superset:
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+
+volumes:
+  mysql_test_data:

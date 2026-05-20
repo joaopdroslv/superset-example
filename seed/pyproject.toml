@@ -1,0 +1,40 @@
+# Standalone-package metadata. The `seed/` directory is self-contained: drop it
+# into another repository and `pip install -e seed/` to get `seed-init` and
+# `seed-run` on the PATH, or skip the install entirely and run via
+# `python -m seed.core.run` from the directory above `seed/`.
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seed"
+version = "0.1.0"
+description = "Reproducible, YAML-configurable synthetic-data seeder for relational test databases."
+requires-python = ">=3.10"
+dependencies = [
+    "SQLAlchemy>=2.0,<3",
+    "PyMySQL>=1.1",
+    "cryptography>=42.0",
+    "Faker>=25.0",
+    "python-dotenv>=1.0",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+seed-init = "seed.init:main"
+seed-run = "seed.core.run:main"
+seed-validate = "seed.core.validate:main"
+
+# The `pyproject.toml` lives inside the `seed/` package directory, so map the
+# `seed` namespace to `.` (and its subpackages to their respective subdirs).
+[tool.setuptools]
+packages = ["seed", "seed.core", "seed.enums", "seed.models"]
+
+[tool.setuptools.package-dir]
+seed = "."
+"seed.core" = "core"
+"seed.enums" = "enums"
+"seed.models" = "models"
+
+[tool.setuptools.package-data]
+seed = ["config.yml", ".env.example"]

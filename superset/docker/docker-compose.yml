@@ -1,0 +1,142 @@
+# Anchor `build:` so every Superset service shares the same custom image
+# (apache/superset:4.1.1 + the extra packages in requirements-local.txt).
+x-superset-build: &superset-build
+  context: ..
+  dockerfile: docker/Dockerfile
+x-superset-image: &superset-image superset-with-drivers:4.1.1
+
+x-superset-env: &superset-env
+  env_file:
+    - ../.env
+  environment:
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+
+x-superset-volumes: &superset-volumes
+  - ../superset_config.py:/app/pythonpath/superset_config.py:ro
+  - superset_home:/app/superset_home
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-superset}
+      POSTGRES_USER: ${POSTGRES_USER:-superset}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-superset}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # One-shot init: migrations + admin user + (optional) demo dashboards.
+  # apache/superset:4.x removed `/app/docker/docker-init.sh`, so we invoke the
+  # equivalent CLI sequence inline.
+  superset-init:
+    build: *superset-build
+    image: *superset-image
+    <<: *superset-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes: *superset-volumes
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        set -e
+        superset db upgrade
+        superset fab create-admin \
+          --username "$$ADMIN_USERNAME" \
+          --firstname "$$ADMIN_FIRSTNAME" \
+          --lastname "$$ADMIN_LASTNAME" \
+          --email "$$ADMIN_EMAIL" \
+          --password "$$ADMIN_PASSWORD"
+        superset init
+        if [ "$${SUPERSET_LOAD_EXAMPLES:-no}" = "yes" ]; then
+          superset load_examples
+        fi
+    healthcheck:
+      disable: true
+
+  superset:
+    build: *superset-build
+    image: *superset-image
+    restart: unless-stopped
+    <<: *superset-env
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    # Default CMD of the image is `/usr/bin/run-server.sh` — start gunicorn.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  superset-worker:
+    build: *superset-build
+    image: *superset-image
+    restart: unless-stopped
+    <<: *superset-env
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    command:
+      - celery
+      - --app=superset.tasks.celery_app:app
+      - worker
+      - --pool=prefork
+      - -O
+      - fair
+      - --concurrency=4
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "celery -A superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME"
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+  superset-worker-beat:
+    build: *superset-build
+    image: *superset-image
+    restart: unless-stopped
+    <<: *superset-env
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    volumes: *superset-volumes
+    command:
+      - celery
+      - --app=superset.tasks.celery_app:app
+      - beat
+      - --pidfile=/tmp/celerybeat.pid
+      - --schedule=/tmp/celerybeat-schedule
+    healthcheck:
+      disable: true
+
+volumes:
+  postgres_data:
+  redis_data:
+  superset_home:

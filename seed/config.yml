@@ -1,0 +1,103 @@
+# Tunable knobs for every seeder in `seed/core/`.
+#
+# Bump `random_seed` to regenerate the entire dataset.
+# `weights` dictionaries are RELATIVE — values don't need to sum to 100; the
+# RNG normalizes them. Use 0 to suppress a value entirely.
+#
+# State codes per country and the hard-coded category tree / brand pools live
+# in `seed/core/factories.py` — they're lookup tables, not knobs.
+
+# RNG seed shared by Faker and `random.Random` — same value → same dataset.
+random_seed: 42
+
+# Total rows inserted per table by `seed.core.run`.
+counts:
+  sellers: 20          # 1 first-party + (sellers - 1) marketplace vendors
+  products: 200
+  customers: 500
+  orders: 2000         # each order has 1–5 items (see orders.items_per_order)
+
+# Order generation knobs.
+orders:
+  # How many orders to insert before COMMIT (keeps the open tx small).
+  commit_every: 200
+
+  items_per_order:
+    min: 1
+    max: 5
+
+  # Flat tax applied to every order's subtotal.
+  tax_rate: 0.10
+
+  free_shipping:
+    threshold: 250.00    # subtotal above this is eligible
+    probability: 0.30    # ... and the promo fires this fraction of the time
+
+  cancellation_rate: 0.03          # rolled per order
+  refund_rate: 0.02                # rolled per order (mutually exclusive w/ cancel)
+  line_discount_probability: 0.20  # chance a single line gets a discount
+  order_discount_probability: 0.15 # chance the whole order gets an extra discount
+
+# Relative weights for random pickers.
+weights:
+  # Country distribution for customers, sellers, and alternate ship addresses.
+  # State codes per country live in `factories._GEO_STATES` — keep this list
+  # in sync with that mapping or seeding will raise.
+  countries:
+    BR: 70
+    US: 10
+    AR: 10
+    MX: 5
+    PT: 5
+
+  # `null` key produces NULL in the DB (gender field was never filled).
+  customer_gender:
+    F: 45
+    M: 45
+    O: 3
+    N: 5
+    null: 2
+
+  customer_segment:
+    B2C: 85
+    B2B: 10
+    VIP: 5
+
+  acquisition_channel:
+    organic: 30
+    paid_ads: 25
+    referral: 10
+    social: 15
+    email: 10
+    affiliate: 5
+    other: 5
+
+  sales_channel:
+    web: 55
+    mobile_app: 30
+    marketplace_api: 5
+    in_store: 5
+    phone: 5
+
+  # Brazilian orders favor Pix / Boleto; international orders favor cards.
+  payment_method_br:
+    pix: 40
+    credit_card: 35
+    boleto: 15
+    debit_card: 7
+    cash: 3
+
+  payment_method_intl:
+    credit_card: 55
+    debit_card: 20
+    paypal: 15
+    wire_transfer: 7
+    cash: 3
+
+  # OrderItem quantity distribution — key is the qty, value is its weight.
+  item_quantity:
+    1: 60
+    2: 20
+    3: 10
+    5: 7
+    10: 3

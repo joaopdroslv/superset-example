@@ -1,0 +1,33 @@
+# Standalone seeder container.
+#
+# Talks to the target MySQL through `host.docker.internal:${MYSQL_PORT}` by
+# default — i.e. the MySQL is reached via its host-exposed port, not via a
+# shared Docker network. This keeps the seeder portable: drop it into a
+# project that has a MySQL on host port X and it Just Works.
+#
+# To target a MySQL on a specific compose network instead, set SEED_DB_HOST
+# to the service name (e.g. `mysql-test`), SEED_DB_PORT=3306, and extend this
+# file with the right `networks:` block.
+
+services:
+  seed:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: seed-runner:latest
+    env_file:
+      - ../../.env
+    environment:
+      SEED_DB_HOST: ${SEED_DB_HOST:-host.docker.internal}
+      SEED_DB_PORT: ${SEED_DB_PORT:-${MYSQL_PORT:-3307}}
+      PYTHONUNBUFFERED: "1"
+    extra_hosts:
+      # Linux Docker doesn't auto-resolve host.docker.internal; this fixes it.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Mount the entire seed/ package read-only. Code changes are picked up
+      # without rebuilding the image; only dep changes need `... build`.
+      - ..:/workspace/seed:ro
+    working_dir: /workspace
+    # No `command:` — scripts/run.sh always passes the python invocation,
+    # so commands stay explicit and `--reset`-style flags route correctly.
