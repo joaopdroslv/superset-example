@@ -1,7 +1,15 @@
 import os
 
-from cachelib.redis import RedisCache
-from celery.schedules import crontab
+# Register PyMySQL as a stand-in for the C-based MySQLdb. Some internal
+# Superset code paths do `import MySQLdb` directly (instead of going through
+# the SQLAlchemy dialect specified on the URI), so without this shim chart
+# previews against MySQL data sources fail with "No module named 'MySQLdb'".
+# Must run before any DB connection is attempted.
+import pymysql  # noqa: E402
+pymysql.install_as_MySQLdb()
+
+from cachelib.redis import RedisCache  # noqa: E402
+from celery.schedules import crontab  # noqa: E402
 
 # ---------- Core ----------
 SECRET_KEY = os.environ["SUPERSET_SECRET_KEY"]
