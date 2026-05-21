@@ -11,8 +11,9 @@ infrastructure:
   Celery worker + beat, Postgres metadata DB, Redis cache + broker. Brought up
   via `./superset/scripts/run.sh`.
 - **[`seed/`](seed/README.md)** — standalone seeder that populates a test
-  MySQL with a realistic e-commerce / marketplace dataset (~500 customers,
-  200 products, 2 000 orders, 6 000 order items). SQLAlchemy 2.x + Faker,
+  MySQL with a realistic e-commerce / marketplace dataset (11 tables, ~500
+  customers, 200 products, 2 000 orders, 6 000 line items, 1 280 addresses,
+  4 700 shipments, 24 000 tracking events). SQLAlchemy 2.x + Faker,
   YAML-configurable, runs in its own Docker container — no host venv needed.
 - **`docker/docker-compose.tests.yml`** — the shared test MySQL. Used as a
   Superset datasource *and* as the seeder's target.

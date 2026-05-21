@@ -16,6 +16,19 @@ counts:
   products: 200
   customers: 500
   orders: 2000         # each order has 1–5 items (see orders.items_per_order)
+  # Shipping fact tables: derived from `orders` and `sellers`. Knobs below
+  # control how many addresses each owner gets and the split-shipping rate.
+
+# How many extra addresses each customer / seller gets, beyond the mandatory
+# default one. Seller addresses model multiple warehouses; customer addresses
+# model alt destinations (work, gift, ...).
+addresses:
+  per_customer:
+    min: 0           # everyone has 1 default; some have 0 extras
+    max: 3
+  per_seller:
+    min: 0           # everyone has 1 default warehouse; some have multi-region
+    max: 2
 
 # Order generation knobs.
 orders:
@@ -37,6 +50,35 @@ orders:
   refund_rate: 0.02                # rolled per order (mutually exclusive w/ cancel)
   line_discount_probability: 0.20  # chance a single line gets a discount
   order_discount_probability: 0.15 # chance the whole order gets an extra discount
+
+  # Use an alternate destination address (not the customer's default) for this
+  # fraction of orders — adds geographic variance to ship_state vs customer.state.
+  alt_ship_address_probability: 0.20
+
+# Shipment generation knobs.
+shipments:
+  # When an order has items from N>1 distinct sellers, this is the chance the
+  # order is split into N shipments (one per seller). Otherwise the items
+  # consolidate at the primary seller's origin.
+  split_shipping_probability: 0.80
+
+  # Fraction of delivered shipments that arrived by `estimated_delivery_at`.
+  on_time_delivery_rate: 0.78
+
+  # Each successful (non-cancelled) shipment generates this many timeline
+  # events between "created" and "delivered".
+  events_per_shipment:
+    min: 3
+    max: 7
+
+  # Base shipping cost formula:  base + weight_kg * weight_factor + cross_zone_penalty
+  cost:
+    base_min: 10.00
+    base_max: 30.00
+    weight_factor_min: 2.00      # cost per kg
+    weight_factor_max: 8.00
+    cross_zone_penalty_min: 15.00
+    cross_zone_penalty_max: 40.00
 
 # Relative weights for random pickers.
 weights:
@@ -101,3 +143,20 @@ weights:
     3: 10
     5: 7
     10: 3
+
+  # Shipping service-level mix (per shipment).
+  service_level:
+    economy: 15
+    standard: 60
+    express: 22
+    same_day: 3
+
+  # Final-state distribution for shipments (only used when the parent order
+  # is in a non-terminal state — terminal orders dictate shipment status
+  # directly via the lifecycle helper).
+  shipment_status:
+    delivered: 80
+    in_transit: 8
+    out_for_delivery: 5
+    exception: 4
+    returned: 3

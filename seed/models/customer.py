@@ -10,6 +10,7 @@ from ..enums.customer import AcquisitionChannel, CustomerSegment
 from .base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from .address import Address
     from .order import Order
 
 
@@ -57,6 +58,10 @@ class Customer(Base, TimestampMixin):
     )
 
     orders: Mapped[List["Order"]] = relationship(
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+    addresses: Mapped[List["Address"]] = relationship(
         back_populates="customer",
         cascade="all, delete-orphan",
     )

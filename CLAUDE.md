@@ -56,19 +56,24 @@ metadata DB.
 │   ├── __init__.py
 │   ├── db.py                         # engine + SessionLocal factory, env auto-discovery
 │   ├── init.py                       # `python -m seed.init` — table creation only
-│   ├── enums/                        # controlled vocabularies (one .py per model)
+│   ├── enums/                        # controlled vocabularies (one .py per model cluster)
 │   │   ├── __init__.py
 │   │   ├── customer.py               # Gender, CustomerSegment, AcquisitionChannel
 │   │   ├── seller.py                 # SellerType
-│   │   └── order.py                  # SalesChannel, OrderStatus, PaymentMethod, Currency
+│   │   ├── order.py                  # SalesChannel, OrderStatus, PaymentMethod, Currency
+│   │   └── shipping.py               # ShippingStatus, ServiceLevel, ShipmentEventType
 │   ├── core/                         # per-table seeders + master orchestrator
 │   │   ├── __init__.py
-│   │   ├── factories.py              # shared Faker, seeded RNG, geo + catalog ref data
+│   │   ├── factories.py              # shared Faker, RNG, geo + catalog + carrier ref data
 │   │   ├── categories.py
+│   │   ├── shipping.py               # shipping_carriers + shipping_zones (dims)
 │   │   ├── sellers.py
 │   │   ├── products.py
 │   │   ├── customers.py
-│   │   ├── orders.py                 # also seeds order_items + computes totals
+│   │   ├── addresses.py              # one default per customer/seller + extras
+│   │   ├── orders.py                 # also seeds order_items + computes order totals
+│   │   ├── shipments.py              # shipments + events; reconciles order.shipping_cost
+│   │   ├── validate.py               # `python -m seed.core.validate` — integrity / coverage / reliability
 │   │   └── run.py                    # `python -m seed.core.run` — orchestrator
 │   ├── models/                       # SQLAlchemy 2.x ORM models
 │   │   ├── __init__.py
@@ -77,7 +82,10 @@ metadata DB.
 │   │   ├── seller.py
 │   │   ├── category.py
 │   │   ├── product.py
-│   │   └── order.py                  # Order + OrderItem
+│   │   ├── order.py                  # Order + OrderItem
+│   │   ├── address.py                # XOR-owned by customer or seller (DB CheckConstraint)
+│   │   ├── shipping.py               # ShippingCarrier + ShippingZone (dim tables)
+│   │   └── shipment.py               # Shipment + ShipmentEvent (fact tables)
 │   ├── docker/                       # containerized seeder runtime
 │   │   ├── Dockerfile                # python:3.11-slim + requirements.txt
 │   │   └── docker-compose.yml        # one-off `seed` service, reaches MySQL via host.docker.internal
@@ -230,9 +238,19 @@ commission, rating).
 
 Entity map:
 ```
-customers ──< orders ──< order_items >── products >── categories (self-referential)
-                                  │           │
-                                  └──> sellers <──┘
+                       ┌──> shipping_zones <──┐
+                       │                       │
+customers ──< addresses ──┐               ┌── addresses >── sellers
+    │                     │               │                  │
+    └─< orders ──< order_items >── products >── categories (self-referential)
+            │           │                          │
+            │           └─────> sellers <──────────┘
+            │
+            └─< shipments ──> shipping_carriers
+                    │
+                    ├──> origin addresses
+                    ├──> dest   addresses
+                    └─< shipment_events
 ```
 
 Key design choices that affect query patterns:
@@ -257,6 +275,24 @@ Key design choices that affect query patterns:
   level taxonomy (parent → subcategory) for drill-downs in Superset.
 - **`Customer.signup_at`** is distinct from `created_at`: the seeder can
   backdate signups to produce cohorts; `created_at` remains row-insert time.
+- **Addresses are normalized** (own table, XOR-owned by customer or seller via
+  DB CheckConstraint) — but the `Order.ship_{country,state,city}` snapshot
+  stays so existing geo reports keep working without joins.
+- **Shipments + tracking events** sit between orders and addresses.
+  `Shipment.{origin,dest}_address_id` reference real address rows; events
+  trail the lifecycle (`created → picked_up → in_transit → out_for_delivery →
+  delivered`). After the shipments seeder runs, `Order.shipping_cost` is
+  reconciled to `SUM(shipments.shipping_cost)` (and `Order.total`
+  recomputed). One order can have multiple shipments — `split-shipping rate`
+  is a config knob (default 80%).
+- **Shipping zones** (BR macro-regions Sudeste/Sul/Nordeste/Norte/Centro-Oeste
+  + INTL) group states for tariff analytics. Same-zone shipments are cheaper;
+  cross-zone shipments pay a penalty per the `factories.compute_shipping_cost`
+  formula (base + weight×factor + cross-zone penalty).
+- **`Shipment.estimated_delivery_at`** is set so the on-time rate
+  (`delivered_at <= estimated_delivery_at`) matches
+  `config.shipments.on_time_delivery_rate` — late shipments get an estimate
+  before their actual delivery, on-time shipments get one after.
 - `Base` and `TimestampMixin` live in `models/base.py`; the mixin adds
   `created_at` / `updated_at` managed by MySQL `NOW()` / `ON UPDATE`.
 - **Controlled vocabularies live in `seed/enums/`**, not on the columns. The DB

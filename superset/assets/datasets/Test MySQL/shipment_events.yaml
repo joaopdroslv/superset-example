@@ -1,0 +1,60 @@
+table_name: shipment_events
+main_dttm_col: occurred_at
+description: Carrier scan / status events for each shipment. Always >=1 row per shipment, ordered by occurred_at.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-00000000001a
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Events
+  metric_type: count
+  expression: COUNT(*)
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: shipment_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: event_type
+  type: VARCHAR(30)
+  groupby: true
+  filterable: true
+- column_name: occurred_at
+  type: DATETIME
+  is_dttm: true
+  groupby: true
+  filterable: true
+- column_name: location
+  type: VARCHAR(160)
+  groupby: true
+  filterable: true
+- column_name: notes
+  type: TEXT
+  groupby: false
+  filterable: false
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

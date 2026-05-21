@@ -1,0 +1,113 @@
+table_name: shipments
+main_dttm_col: dispatched_at
+description: One delivery per row. An order can have multiple shipments (split shipping). Origin/dest are FKs into addresses.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000019
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Shipments
+  metric_type: count
+  expression: COUNT(*)
+- metric_name: total_shipping_revenue
+  verbose_name: Shipping Revenue
+  metric_type: sum
+  expression: SUM(shipping_cost)
+  d3format: ',.2f'
+- metric_name: avg_shipping_cost
+  verbose_name: Avg Shipping Cost
+  metric_type: avg
+  expression: AVG(shipping_cost)
+  d3format: ',.2f'
+- metric_name: total_weight_kg
+  verbose_name: Total Weight (kg)
+  metric_type: sum
+  expression: SUM(declared_weight_kg)
+  d3format: ',.2f'
+- metric_name: on_time_count
+  verbose_name: On-Time Deliveries
+  metric_type: sum
+  expression: SUM(CASE WHEN status = 'delivered' AND delivered_at <= estimated_delivery_at THEN 1 ELSE 0 END)
+- metric_name: delivered_count
+  verbose_name: Delivered Shipments
+  metric_type: sum
+  expression: SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END)
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: order_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: carrier_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: service_level
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: tracking_number
+  type: VARCHAR(40)
+  groupby: false
+  filterable: true
+- column_name: origin_address_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: dest_address_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: declared_weight_kg
+  type: DECIMAL(8,3)
+  groupby: false
+  filterable: true
+- column_name: shipping_cost
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: estimated_delivery_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: dispatched_at
+  type: DATETIME
+  is_dttm: true
+  groupby: true
+  filterable: true
+- column_name: delivered_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: status
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

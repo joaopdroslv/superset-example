@@ -1,0 +1,91 @@
+table_name: addresses
+main_dttm_col: created_at
+description: Postal addresses owned by customers OR sellers (XOR). Reused as shipment origin (seller warehouse) and destination (customer's chosen address).
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000016
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Addresses
+  metric_type: count
+  expression: COUNT(*)
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: customer_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: seller_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: label
+  type: VARCHAR(60)
+  groupby: true
+  filterable: true
+- column_name: is_default
+  type: TINYINT(1)
+  groupby: true
+  filterable: true
+- column_name: line1
+  type: VARCHAR(160)
+  groupby: false
+  filterable: false
+- column_name: neighborhood
+  type: VARCHAR(80)
+  groupby: true
+  filterable: true
+- column_name: city
+  type: VARCHAR(120)
+  groupby: true
+  filterable: true
+- column_name: state
+  type: VARCHAR(60)
+  groupby: true
+  filterable: true
+- column_name: country
+  type: VARCHAR(2)
+  groupby: true
+  filterable: true
+- column_name: postal_code
+  type: VARCHAR(20)
+  groupby: false
+  filterable: true
+- column_name: latitude
+  type: DECIMAL(9,6)
+  groupby: false
+  filterable: false
+- column_name: longitude
+  type: DECIMAL(9,6)
+  groupby: false
+  filterable: false
+- column_name: zone_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

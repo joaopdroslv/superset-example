@@ -13,6 +13,7 @@ columns directly and compared with `==` against plain strings.
 from .customer import AcquisitionChannel, CustomerSegment, Gender
 from .order import Currency, OrderStatus, PaymentMethod, SalesChannel
 from .seller import SellerType
+from .shipping import ServiceLevel, ShipmentEventType, ShippingStatus
 
 __all__ = [
     "AcquisitionChannel",
@@ -23,4 +24,7 @@ __all__ = [
     "PaymentMethod",
     "SalesChannel",
     "SellerType",
+    "ServiceLevel",
+    "ShipmentEventType",
+    "ShippingStatus",
 ]

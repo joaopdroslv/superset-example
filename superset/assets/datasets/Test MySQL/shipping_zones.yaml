@@ -1,0 +1,55 @@
+table_name: shipping_zones
+main_dttm_col: null
+description: Geographic macro-regions used to group states for tariff analytics.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000018
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Zones
+  metric_type: count
+  expression: COUNT(*)
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: name
+  type: VARCHAR(60)
+  groupby: true
+  filterable: true
+- column_name: code
+  type: VARCHAR(10)
+  groupby: true
+  filterable: true
+- column_name: country
+  type: VARCHAR(2)
+  groupby: true
+  filterable: true
+- column_name: description
+  type: VARCHAR(200)
+  groupby: false
+  filterable: false
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

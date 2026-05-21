@@ -22,17 +22,29 @@ from sqlalchemy.orm import Session
 
 from ..db import SessionLocal, engine
 from ..models import Base
-from . import categories, customers, orders, products, sellers
+from . import (
+    addresses,
+    categories,
+    customers,
+    orders,
+    products,
+    sellers,
+    shipments,
+    shipping,
+)
 
 logger = logging.getLogger(__name__)
 
 # Order matters — each entry's FKs reference tables earlier in the list.
 SEEDERS = [
     ("categories", categories.seed),
+    ("shipping (carriers + zones)", shipping.seed),
     ("sellers", sellers.seed),
     ("products", products.seed),
     ("customers", customers.seed),
+    ("addresses", addresses.seed),
     ("orders", orders.seed),
+    ("shipments + events", shipments.seed),
 ]
 
 

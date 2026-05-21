@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from .customer import Customer
     from .product import Product
     from .seller import Seller
+    from .shipment import Shipment
 
 
 class Order(Base, TimestampMixin):
@@ -75,6 +76,10 @@ class Order(Base, TimestampMixin):
         back_populates="order",
         cascade="all, delete-orphan",
     )
+    shipments: Mapped[List["Shipment"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+    )
 
 
 class OrderItem(Base, TimestampMixin):
@@ -105,6 +110,14 @@ class OrderItem(Base, TimestampMixin):
         index=True,
     )
 
+    # Which shipment carried this line. Nullable so order_items can be inserted
+    # before the shipments are created; the seeder back-fills after.
+    shipment_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("shipments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     quantity: Mapped[int] = mapped_column(nullable=False, default=1)
     # Snapshots — see class docstring.
     unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -115,3 +128,4 @@ class OrderItem(Base, TimestampMixin):
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship(back_populates="items")
     seller: Mapped["Seller"] = relationship(back_populates="sold_items")
+    shipment: Mapped[Optional["Shipment"]] = relationship(back_populates="items")

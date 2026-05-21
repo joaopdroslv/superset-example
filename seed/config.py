@@ -1,6 +1,6 @@
 """Loads `config.yml` into a typed `Config` dataclass tree.
 
-The default file path is `src/seed/config.yml`. Override with the
+The default file path is `seed/config.yml`. Override with the
 `SEED_CONFIG_PATH` environment variable to point at a different YAML (handy
 for running a "small" or "huge" preset side by side).
 """
@@ -27,9 +27,15 @@ class Counts:
 
 
 @dataclass(frozen=True)
-class ItemsPerOrder:
+class IntRange:
     min: int
     max: int
+
+
+@dataclass(frozen=True)
+class AddressesConfig:
+    per_customer: IntRange
+    per_seller: IntRange
 
 
 @dataclass(frozen=True)
@@ -41,13 +47,32 @@ class FreeShipping:
 @dataclass(frozen=True)
 class OrdersConfig:
     commit_every: int
-    items_per_order: ItemsPerOrder
+    items_per_order: IntRange
     tax_rate: Decimal
     free_shipping: FreeShipping
     cancellation_rate: float
     refund_rate: float
     line_discount_probability: float
     order_discount_probability: float
+    alt_ship_address_probability: float
+
+
+@dataclass(frozen=True)
+class ShipmentCost:
+    base_min: Decimal
+    base_max: Decimal
+    weight_factor_min: Decimal
+    weight_factor_max: Decimal
+    cross_zone_penalty_min: Decimal
+    cross_zone_penalty_max: Decimal
+
+
+@dataclass(frozen=True)
+class ShipmentsConfig:
+    split_shipping_probability: float
+    on_time_delivery_rate: float
+    events_per_shipment: IntRange
+    cost: ShipmentCost
 
 
 @dataclass(frozen=True)
@@ -62,13 +87,17 @@ class Weights:
     payment_method_br: dict[str, int]
     payment_method_intl: dict[str, int]
     item_quantity: dict[int, int]
+    service_level: dict[str, int]
+    shipment_status: dict[str, int]
 
 
 @dataclass(frozen=True)
 class Config:
     random_seed: int
     counts: Counts
+    addresses: AddressesConfig
     orders: OrdersConfig
+    shipments: ShipmentsConfig
     weights: Weights
 
 
@@ -96,13 +125,20 @@ def load(path: Optional[Path] = None) -> Config:
 
 def _build(raw: dict[str, Any]) -> Config:
     orders_raw = raw["orders"]
+    addresses_raw = raw["addresses"]
+    shipments_raw = raw["shipments"]
     weights_raw = raw["weights"]
+    cost_raw = shipments_raw["cost"]
     return Config(
         random_seed=int(raw["random_seed"]),
         counts=Counts(**raw["counts"]),
+        addresses=AddressesConfig(
+            per_customer=IntRange(**addresses_raw["per_customer"]),
+            per_seller=IntRange(**addresses_raw["per_seller"]),
+        ),
         orders=OrdersConfig(
             commit_every=int(orders_raw["commit_every"]),
-            items_per_order=ItemsPerOrder(**orders_raw["items_per_order"]),
+            items_per_order=IntRange(**orders_raw["items_per_order"]),
             tax_rate=Decimal(str(orders_raw["tax_rate"])),
             free_shipping=FreeShipping(
                 threshold=Decimal(str(orders_raw["free_shipping"]["threshold"])),
@@ -112,6 +148,20 @@ def _build(raw: dict[str, Any]) -> Config:
             refund_rate=float(orders_raw["refund_rate"]),
             line_discount_probability=float(orders_raw["line_discount_probability"]),
             order_discount_probability=float(orders_raw["order_discount_probability"]),
+            alt_ship_address_probability=float(orders_raw["alt_ship_address_probability"]),
+        ),
+        shipments=ShipmentsConfig(
+            split_shipping_probability=float(shipments_raw["split_shipping_probability"]),
+            on_time_delivery_rate=float(shipments_raw["on_time_delivery_rate"]),
+            events_per_shipment=IntRange(**shipments_raw["events_per_shipment"]),
+            cost=ShipmentCost(
+                base_min=Decimal(str(cost_raw["base_min"])),
+                base_max=Decimal(str(cost_raw["base_max"])),
+                weight_factor_min=Decimal(str(cost_raw["weight_factor_min"])),
+                weight_factor_max=Decimal(str(cost_raw["weight_factor_max"])),
+                cross_zone_penalty_min=Decimal(str(cost_raw["cross_zone_penalty_min"])),
+                cross_zone_penalty_max=Decimal(str(cost_raw["cross_zone_penalty_max"])),
+            ),
         ),
         weights=Weights(
             countries=dict(weights_raw["countries"]),
@@ -122,6 +172,8 @@ def _build(raw: dict[str, Any]) -> Config:
             payment_method_br=dict(weights_raw["payment_method_br"]),
             payment_method_intl=dict(weights_raw["payment_method_intl"]),
             item_quantity={int(k): int(v) for k, v in weights_raw["item_quantity"].items()},
+            service_level=dict(weights_raw["service_level"]),
+            shipment_status=dict(weights_raw["shipment_status"]),
         ),
     )
 
@@ -133,19 +185,32 @@ def _validate(cfg: Config) -> None:
         if getattr(cfg.counts, field) < 0:
             raise ValueError(f"counts.{field} must be non-negative")
 
-    ipo = cfg.orders.items_per_order
-    if ipo.min < 1 or ipo.max < ipo.min:
-        raise ValueError(f"orders.items_per_order: invalid range min={ipo.min} max={ipo.max}")
+    for label, rng in (
+        ("orders.items_per_order", cfg.orders.items_per_order),
+        ("shipments.events_per_shipment", cfg.shipments.events_per_shipment),
+    ):
+        if rng.min < 1 or rng.max < rng.min:
+            raise ValueError(f"{label}: invalid range min={rng.min} max={rng.max}")
+    for label, rng in (
+        ("addresses.per_customer", cfg.addresses.per_customer),
+        ("addresses.per_seller", cfg.addresses.per_seller),
+    ):
+        if rng.min < 0 or rng.max < rng.min:
+            raise ValueError(f"{label}: invalid range min={rng.min} max={rng.max}")
 
-    for name, value in [
-        ("cancellation_rate", cfg.orders.cancellation_rate),
-        ("refund_rate", cfg.orders.refund_rate),
-        ("free_shipping.probability", cfg.orders.free_shipping.probability),
-        ("line_discount_probability", cfg.orders.line_discount_probability),
-        ("order_discount_probability", cfg.orders.order_discount_probability),
-    ]:
+    probs = [
+        ("orders.cancellation_rate", cfg.orders.cancellation_rate),
+        ("orders.refund_rate", cfg.orders.refund_rate),
+        ("orders.free_shipping.probability", cfg.orders.free_shipping.probability),
+        ("orders.line_discount_probability", cfg.orders.line_discount_probability),
+        ("orders.order_discount_probability", cfg.orders.order_discount_probability),
+        ("orders.alt_ship_address_probability", cfg.orders.alt_ship_address_probability),
+        ("shipments.split_shipping_probability", cfg.shipments.split_shipping_probability),
+        ("shipments.on_time_delivery_rate", cfg.shipments.on_time_delivery_rate),
+    ]
+    for name, value in probs:
         if not 0.0 <= value <= 1.0:
-            raise ValueError(f"orders.{name} must be in [0, 1], got {value}")
+            raise ValueError(f"{name} must be in [0, 1], got {value}")
 
     if cfg.orders.cancellation_rate + cfg.orders.refund_rate > 1.0:
         raise ValueError("orders.cancellation_rate + orders.refund_rate must be <= 1")
@@ -159,6 +224,8 @@ def _validate(cfg: Config) -> None:
         ("payment_method_br", cfg.weights.payment_method_br),
         ("payment_method_intl", cfg.weights.payment_method_intl),
         ("item_quantity", cfg.weights.item_quantity),
+        ("service_level", cfg.weights.service_level),
+        ("shipment_status", cfg.weights.shipment_status),
     ):
         if not weights:
             raise ValueError(f"weights.{label} must contain at least one entry")

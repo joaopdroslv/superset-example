@@ -11,6 +11,7 @@ from ..enums.seller import SellerType
 from .base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from .address import Address
     from .order import OrderItem
     from .product import Product
 
@@ -56,3 +57,7 @@ class Seller(Base, TimestampMixin):
     products: Mapped[List["Product"]] = relationship(back_populates="seller")
     # Historical link via the snapshot on OrderItem.
     sold_items: Mapped[List["OrderItem"]] = relationship(back_populates="seller")
+    addresses: Mapped[List["Address"]] = relationship(
+        back_populates="seller",
+        cascade="all, delete-orphan",
+    )

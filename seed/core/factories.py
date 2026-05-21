@@ -124,3 +124,133 @@ BRANDS_BY_SUBCATEGORY: dict[str, list[str]] = {
     "Outdoor": ["Columbia", "The North Face", "Patagonia", "Nautika"],
     "Fitness": ["Nike", "Adidas", "Puma", "Under Armour"],
 }
+
+
+# ---------------------------------------------------------------------------
+# Shipping reference data
+# ---------------------------------------------------------------------------
+
+# Brazilian macro-regions plus a catch-all "INTL" for everything outside BR.
+# `ShippingZone` rows are seeded from this list; addresses get their `zone_id`
+# resolved via STATE_TO_ZONE below.
+SHIPPING_ZONES_BR: list[dict[str, str]] = [
+    {"code": "SE", "name": "Sudeste",      "country": "BR", "description": "SP, RJ, MG, ES"},
+    {"code": "S",  "name": "Sul",          "country": "BR", "description": "PR, SC, RS"},
+    {"code": "NE", "name": "Nordeste",     "country": "BR", "description": "BA, PE, CE, MA, PI, RN, PB, AL, SE"},
+    {"code": "N",  "name": "Norte",        "country": "BR", "description": "PA, AM, RO, RR, AC, AP, TO"},
+    {"code": "CO", "name": "Centro-Oeste", "country": "BR", "description": "DF, GO, MT, MS"},
+]
+SHIPPING_ZONE_INTL = {
+    "code": "INTL", "name": "International", "country": "XX",
+    "description": "Everything outside Brazil",
+}
+
+# Maps BR state codes (as used in `_GEO_STATES`) → zone code. States not in
+# this map (e.g. US/AR/MX/PT) fall back to the "INTL" zone at lookup time.
+STATE_TO_ZONE: dict[str, str] = {
+    # Sudeste
+    "SP": "SE", "RJ": "SE", "MG": "SE", "ES": "SE",
+    # Sul
+    "PR": "S",  "SC": "S",  "RS": "S",
+    # Nordeste
+    "BA": "NE", "PE": "NE", "CE": "NE",
+    # Norte (no _GEO_STATES entries yet, kept for future expansion)
+    # Centro-Oeste
+    "GO": "CO", "DF": "CO",
+}
+
+
+def state_to_zone_code(country: str, state: str) -> str:
+    """Return the shipping zone code for (country, state). Non-BR → 'INTL'."""
+    if country != "BR":
+        return SHIPPING_ZONE_INTL["code"]
+    return STATE_TO_ZONE.get(state, SHIPPING_ZONE_INTL["code"])
+
+
+# Brazilian-flavored carrier roster. `service_levels` is a CSV of values from
+# `enums.shipping.ServiceLevel`; `typical_lead_time_hours` feeds the seeder's
+# estimated_delivery calculation.
+SHIPPING_CARRIERS: list[dict] = [
+    {
+        "name": "Correios",
+        "code": "BR-CORREIOS",
+        "country": "BR",
+        "service_levels": "economy,standard,express",
+        "typical_lead_time_hours": 96,
+    },
+    {
+        "name": "Loggi",
+        "code": "BR-LOGGI",
+        "country": "BR",
+        "service_levels": "standard,express,same_day",
+        "typical_lead_time_hours": 48,
+    },
+    {
+        "name": "Total Express",
+        "code": "BR-TOTAL",
+        "country": "BR",
+        "service_levels": "standard,express",
+        "typical_lead_time_hours": 72,
+    },
+    {
+        "name": "Jadlog",
+        "code": "BR-JADLOG",
+        "country": "BR",
+        "service_levels": "economy,standard",
+        "typical_lead_time_hours": 96,
+    },
+    {
+        "name": "Mercado Envios",
+        "code": "BR-ML",
+        "country": "BR",
+        "service_levels": "standard,express,same_day",
+        "typical_lead_time_hours": 36,
+    },
+    {
+        "name": "FedEx International",
+        "code": "INTL-FEDEX",
+        "country": "US",
+        "service_levels": "standard,express",
+        "typical_lead_time_hours": 168,
+    },
+]
+
+
+def compute_shipping_cost(
+    weight_kg: Decimal,
+    *,
+    same_zone: bool,
+) -> Decimal:
+    """Synthetic shipping cost formula:
+
+        base + (weight_kg * weight_factor) + (cross_zone_penalty if not same_zone)
+
+    All three components are drawn from the configured ranges, so two calls
+    with identical inputs still vary — realistic for a sandbox.
+    """
+    c = CONFIG.shipments.cost
+    base = Decimal(str(round(rng.uniform(float(c.base_min), float(c.base_max)), 2)))
+    wf = Decimal(str(round(rng.uniform(float(c.weight_factor_min), float(c.weight_factor_max)), 2)))
+    penalty = (
+        Decimal("0")
+        if same_zone
+        else Decimal(str(round(rng.uniform(
+            float(c.cross_zone_penalty_min), float(c.cross_zone_penalty_max)
+        ), 2)))
+    )
+    return money(base + (weight_kg * wf) + penalty)
+
+
+# Tracking-event location samples — used by the shipments seeder to fill in
+# `ShipmentEvent.location`. Realistic-sounding pt_BR strings.
+TRACKING_LOCATION_TEMPLATES: list[str] = [
+    "Centro de Distribuição {city} - {state}",
+    "Agência {city}",
+    "Hub Regional {city}",
+    "Unidade de Tratamento {city}",
+    "Em trânsito - {city}/{state}",
+]
+
+
+def tracking_location(city: str, state: str) -> str:
+    return rng.choice(TRACKING_LOCATION_TEMPLATES).format(city=city, state=state)

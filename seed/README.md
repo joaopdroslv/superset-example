@@ -40,18 +40,25 @@ seed/
 │   ├── seller.py
 │   ├── category.py
 │   ├── product.py
-│   └── order.py              Order + OrderItem
+│   ├── order.py              Order + OrderItem
+│   ├── address.py            XOR-owned (customer XOR seller)
+│   ├── shipping.py           ShippingCarrier + ShippingZone (dim tables)
+│   └── shipment.py           Shipment + ShipmentEvent (fact tables)
 ├── enums/                    controlled vocabularies referenced by the models
 │   ├── customer.py           Gender, CustomerSegment, AcquisitionChannel
 │   ├── seller.py             SellerType
-│   └── order.py              SalesChannel, OrderStatus, PaymentMethod, Currency
+│   ├── order.py              SalesChannel, OrderStatus, PaymentMethod, Currency
+│   └── shipping.py           ShippingStatus, ServiceLevel, ShipmentEventType
 └── core/                     per-table seeders + orchestrator + validator
-    ├── factories.py          shared Faker, seeded RNG, geo + catalog ref data
+    ├── factories.py          shared Faker, RNG, geo + catalog + carrier ref data
     ├── categories.py
+    ├── shipping.py           shipping_carriers + shipping_zones (dim)
     ├── sellers.py
     ├── products.py
     ├── customers.py
-    ├── orders.py             also seeds order_items + computes totals
+    ├── addresses.py          one default per customer/seller + extras
+    ├── orders.py             also seeds order_items + computes order totals
+    ├── shipments.py          shipments + events; reconciles order.shipping_cost
     ├── run.py                `python -m seed.core.run` — orchestrator
     └── validate.py           `python -m seed.core.validate` — integrity / coverage / reliability checks
 ```
@@ -78,9 +85,11 @@ You just cloned the repo. Run these (from the project root):
    ./seed/scripts/run.sh
    ```
 
-   First run builds the seeder image (~30 s) and seeds in ~25 s. Subsequent
-   runs reuse the image. Default volumes: ~22 categories, 20 sellers, 200
-   products, 500 customers, 2 000 orders, ~6 000 order items.
+   First run builds the seeder image (~30 s) and seeds in ~2 minutes
+   (shipments + events are the slow step). Subsequent runs reuse the image.
+   Default volumes: ~22 categories, 6 carriers, 6 zones, 20 sellers, 200
+   products, 500 customers, ~1 280 addresses, 2 000 orders, ~6 000 order
+   items, ~4 700 shipments, ~24 000 tracking events.
 
    The command is *additive* — it skips tables that already have rows. To
    start from scratch, use `--reset` (drops every table, then reseeds).
@@ -91,8 +100,8 @@ You just cloned the repo. Run these (from the project root):
    ./seed/scripts/run.sh validate
    ```
 
-   Runs 46 checks across integrity, reliability, and coverage. Exit code 0
-   if no FAILs (WARNs allowed — they're coverage gaps, not bugs).
+   Runs ~70 checks across four sections (integrity, reliability, shipping,
+   coverage). Exit code 0 if no FAILs (WARNs allowed — coverage gaps, not bugs).
 
 4. *(optional)* **Regenerate with a different shape:** edit `seed/config.yml`
    (bump `random_seed`, tweak counts / weights / probabilities), then:
@@ -160,10 +169,26 @@ values.
 ## Schema
 
 ```
-customers ──< orders ──< order_items >── products >── categories (self-referential)
-                                  │           │
-                                  └──> sellers <──┘
+                          ┌── shipping_zones <──┐
+                          │                      │
+customers ──< addresses ──┤      ┌── addresses >── sellers
+    │                     │      │                  │
+    └─< orders ──< order_items >── products >── categories (self-referential)
+            │           │                          │
+            │           └──────> sellers <─────────┘
+            │
+            └─< shipments ──> shipping_carriers
+                    │
+                    ├──> origin addresses
+                    ├──> dest   addresses
+                    └─< shipment_events
 ```
+
+**11 tables in total.** The shape stays a marketplace-style e-commerce model
+with a deep shipping layer: addresses are normalized (XOR-owned by customer
+or seller via a DB CheckConstraint), every non-cancelled order produces one
+or more shipments, every shipment has a tracking-event timeline, and
+addresses get a shipping zone for tariff analytics.
 
 Highlights designed for BI:
 
@@ -179,6 +204,15 @@ Highlights designed for BI:
 - **Categories are self-referential**: `parent_id` → drill-downs.
 - **Customer `signup_at`** is distinct from `created_at`: the seeder backdates
   signups to produce cohorts; `created_at` is row-insert time.
+- **Shipments own the shipping cost truth.** The shipments seeder computes
+  per-shipment cost via `base + weight*factor + cross-zone penalty`, then
+  reconciles `Order.shipping_cost = SUM(shipments.shipping_cost)` and
+  recomputes `Order.total`. The `Shipping` section of `seed-validate` checks
+  this consistency.
+- **Estimated vs actual delivery** is engineered so the on-time rate
+  (`delivered_at <= estimated_delivery_at`) matches
+  `config.shipments.on_time_delivery_rate`. Late shipments get an estimate
+  *before* their actual delivery; on-time ones get one *after*.
 
 ## Configuration (`config.yml`)
 
