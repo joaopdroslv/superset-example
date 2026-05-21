@@ -11,9 +11,17 @@ x-superset-env: &superset-env
   environment:
     REDIS_HOST: redis
     REDIS_PORT: 6379
+    # Forwarded from project-root .env so scripts/import-assets.py can expand
+    # ${MYSQL_USER} / ${MYSQL_PASSWORD} / ${MYSQL_DATABASE} inside the database
+    # YAML at import time. Interpolated by Compose from --env-file .env.
+    MYSQL_USER: ${MYSQL_USER}
+    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    MYSQL_DATABASE: ${MYSQL_DATABASE}
 
 x-superset-volumes: &superset-volumes
   - ../superset_config.py:/app/pythonpath/superset_config.py:ro
+  - ../assets:/app/assets:ro
+  - ../scripts/import-assets.py:/app/scripts/import-assets.py:ro
   - superset_home:/app/superset_home
 
 services:
@@ -71,6 +79,9 @@ services:
         superset init
         if [ "$${SUPERSET_LOAD_EXAMPLES:-no}" = "yes" ]; then
           superset load_examples
+        fi
+        if [ -d /app/assets ] && [ -f /app/scripts/import-assets.py ]; then
+          python /app/scripts/import-assets.py
         fi
     healthcheck:
       disable: true

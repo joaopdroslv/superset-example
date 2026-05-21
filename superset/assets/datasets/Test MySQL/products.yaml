@@ -1,0 +1,94 @@
+table_name: products
+main_dttm_col: launched_on
+description: Catalog SKUs. price and cost are CURRENT — historic margin lives on order_items via snapshots.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000013
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Products
+  metric_type: count
+  expression: COUNT(*)
+- metric_name: avg_price
+  verbose_name: Avg Price
+  metric_type: avg
+  expression: AVG(price)
+  d3format: ',.2f'
+- metric_name: avg_margin_pct
+  verbose_name: Avg Margin %
+  metric_type: avg
+  expression: AVG((price - cost) / NULLIF(price, 0))
+  d3format: ',.1%'
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: sku
+  type: VARCHAR(40)
+  groupby: false
+  filterable: true
+- column_name: name
+  type: VARCHAR(160)
+  groupby: true
+  filterable: true
+- column_name: description
+  type: TEXT
+  groupby: false
+  filterable: false
+- column_name: brand
+  type: VARCHAR(80)
+  groupby: true
+  filterable: true
+- column_name: price
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: cost
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: weight_kg
+  type: DECIMAL(8,3)
+  groupby: false
+  filterable: true
+- column_name: category_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: seller_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: is_active
+  type: TINYINT(1)
+  groupby: true
+  filterable: true
+- column_name: launched_on
+  type: DATE
+  is_dttm: true
+  groupby: true
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

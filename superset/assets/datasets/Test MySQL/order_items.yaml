@@ -1,0 +1,81 @@
+table_name: order_items
+main_dttm_col: created_at
+description: One row per order line. unit_price / unit_cost / seller_id are SNAPSHOTS at sale time — use these for historic reports, not products.*.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000015
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Line Items
+  metric_type: count
+  expression: COUNT(*)
+- metric_name: units_sold
+  verbose_name: Units Sold
+  metric_type: sum
+  expression: SUM(quantity)
+- metric_name: gross_revenue
+  verbose_name: Gross Revenue
+  metric_type: sum
+  expression: SUM(unit_price * quantity - discount_amount)
+  d3format: ',.2f'
+- metric_name: gross_margin
+  verbose_name: Gross Margin
+  metric_type: sum
+  expression: SUM((unit_price - unit_cost) * quantity - discount_amount)
+  d3format: ',.2f'
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: order_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: product_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: seller_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: quantity
+  type: INT
+  groupby: false
+  filterable: true
+- column_name: unit_price
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: unit_cost
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: discount_amount
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

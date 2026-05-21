@@ -1,0 +1,98 @@
+table_name: sellers
+main_dttm_col: onboarded_on
+description: Merchants. seller_type distinguishes the store itself (first_party) from marketplace vendors.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000011
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Sellers
+  metric_type: count
+  expression: COUNT(*)
+- metric_name: avg_rating
+  verbose_name: Avg Rating
+  metric_type: avg
+  expression: AVG(rating)
+  d3format: ',.2f'
+- metric_name: avg_commission_rate
+  verbose_name: Avg Commission Rate
+  metric_type: avg
+  expression: AVG(commission_rate)
+  d3format: ',.2%'
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: name
+  type: VARCHAR(160)
+  groupby: true
+  filterable: true
+- column_name: slug
+  type: VARCHAR(160)
+  groupby: false
+  filterable: true
+- column_name: email
+  type: VARCHAR(180)
+  groupby: false
+  filterable: true
+- column_name: country
+  type: VARCHAR(2)
+  groupby: true
+  filterable: true
+- column_name: state
+  type: VARCHAR(60)
+  groupby: true
+  filterable: true
+- column_name: city
+  type: VARCHAR(120)
+  groupby: true
+  filterable: true
+- column_name: postal_code
+  type: VARCHAR(20)
+  groupby: false
+  filterable: true
+- column_name: seller_type
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: commission_rate
+  type: DECIMAL(5,4)
+  groupby: false
+  filterable: true
+- column_name: rating
+  type: DECIMAL(3,2)
+  groupby: false
+  filterable: true
+- column_name: is_active
+  type: TINYINT(1)
+  groupby: true
+  filterable: true
+- column_name: onboarded_on
+  type: DATE
+  is_dttm: true
+  groupby: true
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true

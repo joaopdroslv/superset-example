@@ -1,0 +1,18 @@
+# MYSQL_USER and MYSQL_PASSWORD are substituted at import time by
+# scripts/import-assets.py (using os.path.expandvars) before zipping.
+database_name: Test MySQL
+sqlalchemy_uri: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql-test:3306/${MYSQL_DATABASE}
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: true
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_file_upload: false
+extra:
+  metadata_params: {}
+  engine_params: {}
+  metadata_cache_timeout: {}
+  schemas_allowed_for_file_upload: []
+uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0

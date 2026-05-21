@@ -1,0 +1,148 @@
+table_name: orders
+main_dttm_col: placed_at
+description: One row per order. Totals decomposed into subtotal/shipping/tax/discount/total. Ship address snapshotted.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: null
+schema: testdb
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 7e51c5a8-1111-4001-8000-000000000014
+database_uuid: 7e51c5a8-1111-4001-8000-000000000001
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Orders
+  metric_type: count
+  expression: COUNT(*)
+- metric_name: total_revenue
+  verbose_name: Revenue
+  metric_type: sum
+  expression: SUM(total)
+  d3format: ',.2f'
+- metric_name: avg_ticket
+  verbose_name: Avg Ticket
+  metric_type: avg
+  expression: AVG(total)
+  d3format: ',.2f'
+- metric_name: total_tax
+  verbose_name: Total Tax
+  metric_type: sum
+  expression: SUM(tax_amount)
+  d3format: ',.2f'
+- metric_name: total_shipping
+  verbose_name: Total Shipping
+  metric_type: sum
+  expression: SUM(shipping_cost)
+  d3format: ',.2f'
+- metric_name: total_discount
+  verbose_name: Total Discount
+  metric_type: sum
+  expression: SUM(discount_amount)
+  d3format: ',.2f'
+columns:
+- column_name: id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: order_number
+  type: VARCHAR(30)
+  groupby: false
+  filterable: true
+- column_name: customer_id
+  type: BIGINT
+  groupby: true
+  filterable: true
+- column_name: channel
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: status
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: placed_at
+  type: DATETIME
+  is_dttm: true
+  groupby: true
+  filterable: true
+- column_name: paid_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: shipped_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: delivered_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: payment_method
+  type: VARCHAR(20)
+  groupby: true
+  filterable: true
+- column_name: payment_installments
+  type: INT
+  groupby: true
+  filterable: true
+- column_name: currency
+  type: VARCHAR(3)
+  groupby: true
+  filterable: true
+- column_name: subtotal
+  type: DECIMAL(12,2)
+  groupby: false
+  filterable: true
+- column_name: shipping_cost
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: tax_amount
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: discount_amount
+  type: DECIMAL(10,2)
+  groupby: false
+  filterable: true
+- column_name: total
+  type: DECIMAL(12,2)
+  groupby: false
+  filterable: true
+- column_name: ship_country
+  type: VARCHAR(2)
+  groupby: true
+  filterable: true
+- column_name: ship_state
+  type: VARCHAR(60)
+  groupby: true
+  filterable: true
+- column_name: ship_city
+  type: VARCHAR(120)
+  groupby: true
+  filterable: true
+- column_name: ship_postal_code
+  type: VARCHAR(20)
+  groupby: false
+  filterable: true
+- column_name: created_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
+- column_name: updated_at
+  type: DATETIME
+  is_dttm: true
+  groupby: false
+  filterable: true
